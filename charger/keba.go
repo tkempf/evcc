@@ -290,6 +290,24 @@ func (c *Keba) Currents() (float64, float64, float64, error) {
 	return float64(kr.I1) / 1e3, float64(kr.I2) / 1e3, float64(kr.I3) / 1e3, err
 }
 
+// Voltages implements the to-be MeterVoltages interface
+func (c *Keba) Voltages() (float64, float64, float64, error) {
+	var kr keba.Report3
+	err := c.roundtrip("report 3", 3, &kr)
+
+	// V
+	return float64(kr.U1), float64(kr.U2), float64(kr.U3), err
+}
+
+// PowerFactor implements the to-be MeterPowerFactor interface
+func (c *Keba) PowerFactor() (float64, error) {
+	var kr keba.Report3
+	err := c.roundtrip("report 3", 3, &kr)
+
+	// 0,1% to %
+	return float64(kr.PF) / 10, err
+}
+
 // Diagnosis implements the Diagnosis interface
 func (c *Keba) Diagnosis() {
 	var kr keba.Report100

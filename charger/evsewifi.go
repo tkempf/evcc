@@ -46,12 +46,8 @@ type EVSEListEntry struct {
 // EVSEWifi charger implementation
 type EVSEWifi struct {
 	*util.HTTPHelper
-	uri string
+	uri          string
 	alwaysActive bool
-}
-
-func init() {
-	registry.Add("evsewifi", NewEVSEWifiFromConfig)
 }
 
 func init() {
@@ -71,9 +67,9 @@ func NewEVSEWifiFromConfig(other map[string]interface{}) (api.Charger, error) {
 // NewEVSEWifi creates EVSEWifi charger
 func NewEVSEWifi(uri string) (api.Charger, error) {
 	evse := &EVSEWifi{
-		HTTPHelper:        util.NewHTTPHelper(util.NewLogger("wifi")),
-		uri:               strings.TrimRight(uri, "/"),
-		alwaysActive:      true,
+		HTTPHelper:   util.NewHTTPHelper(util.NewLogger("wifi")),
+		uri:          strings.TrimRight(uri, "/"),
+		alwaysActive: true,
 	}
 
 	return evse, nil

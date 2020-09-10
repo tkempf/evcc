@@ -21,14 +21,11 @@ const (
 	volvoAPI = "https://vocapi.wirelesscar.net/customerapi/rest/v3.0/"
 )
 
-type volvoDynamicResponse struct {
-	AttributesMap struct {
-		ChargingLevelHv float64 `json:"chargingLevelHv,string"`
-	}
-}
+type volvoDynamicResponse interface{}
 
-type volvoVehiclesResponse []struct {
-	Vin string `json:"vin"`
+type volvoVehiclesResponse struct {
+	AccountVehicleRelations []struct {
+	} `json:"accountVehicleRelations"`
 }
 
 // Volvo is an api.Vehicle implementation for Volvo cars
@@ -69,16 +66,18 @@ func NewVolvoFromConfig(other map[string]interface{}) (api.Vehicle, error) {
 
 	if cc.VIN == "" {
 		vehicles, err := v.vehicles()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get vehicles: %v", err)
-		}
+		_ = vehicles
+		_ = err
+		// if err != nil {
+		// 	return nil, fmt.Errorf("cannot get vehicles: %v", err)
+		// }
 
-		if len(vehicles) != 1 {
-			return nil, fmt.Errorf("cannot find vehicle: %v", vehicles)
-		}
+		// if len(vehicles) != 1 {
+		// 	return nil, fmt.Errorf("cannot find vehicle: %v", vehicles)
+		// }
 
-		v.vin = vehicles[0].Vin
-		log.DEBUG.Printf("found vehicle: %v", v.vin)
+		// v.vin = vehicles[0].Vin
+		// log.DEBUG.Printf("found vehicle: %v", v.vin)
 	}
 
 	v.chargeStateG = provider.NewCached(v.chargeState, cc.Cache).FloatGetter()
@@ -107,7 +106,9 @@ func (v *Volvo) vehicles() (volvoVehiclesResponse, error) {
 
 	req, err := v.request("customeraccounts")
 	if err == nil {
-		_, err = v.RequestJSON(req, &resp)
+		var b []byte
+		b, err = v.RequestJSON(req, &resp)
+		println(string(b))
 	}
 
 	return resp, err
@@ -123,7 +124,7 @@ func (v *Volvo) chargeState() (float64, error) {
 	}
 
 	_, err = v.RequestJSON(req, &resp)
-	return resp.AttributesMap.ChargingLevelHv, err
+	return 0, err
 }
 
 // ChargeState implements the Vehicle.ChargeState interface

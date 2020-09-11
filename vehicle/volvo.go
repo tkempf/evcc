@@ -23,8 +23,10 @@ const (
 
 type volvoDynamicResponse interface{}
 
-type volvoVehiclesResponse struct {
-	AccountVehicleRelations []struct {
+type volvoAccountResponse struct {
+	FirstName       string `json:"firstName"`
+	LastName        string `json:"lastName"`
+	AccountVehicles []struct {
 	} `json:"accountVehicleRelations"`
 }
 
@@ -101,8 +103,8 @@ func (v *Volvo) request(uri string) (*http.Request, error) {
 }
 
 // vehicles implements returns the list of user vehicles
-func (v *Volvo) vehicles() (volvoVehiclesResponse, error) {
-	var resp volvoVehiclesResponse
+func (v *Volvo) vehicles() (volvoAccountResponse, error) {
+	var resp volvoAccountResponse
 
 	req, err := v.request("customeraccounts")
 	if err == nil {

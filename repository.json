@@ -1,5 +1,5 @@
 {
-    "name": "evcc Hass.io Addon",
+    "name": "EVCC Add-on",
     "url": "https://github.com/andig/evcc",
-    "maintainer": "@andig"
+    "maintainer": "andig <cpuidle@gmx.de>"
 }

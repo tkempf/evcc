@@ -27,6 +27,8 @@ func NewConfigurableFromConfig(other map[string]interface{}) (api.Charger, error
 		return nil, err
 	}
 
+	fmt.Printf("\n%+v\n\n", util.DumpStruct(cc))
+
 	for k, v := range map[string]string{
 		"status":     cc.Status.Type,
 		"enable":     cc.Enable.Type,

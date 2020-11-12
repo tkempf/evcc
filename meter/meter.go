@@ -28,6 +28,8 @@ func NewConfigurableFromConfig(other map[string]interface{}) (api.Meter, error) 
 		return nil, err
 	}
 
+	fmt.Printf("\n%+v\n\n", util.DumpStruct(cc))
+
 	for k, v := range map[string]string{"power": cc.Power.Type} {
 		if v == "" {
 			return nil, fmt.Errorf("default meter config: %s required", k)

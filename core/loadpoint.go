@@ -83,6 +83,7 @@ type LoadPoint struct {
 	vehicle      api.Vehicle   // Currently active vehicle
 	vehicles     []api.Vehicle // Assigned vehicles
 	socEstimator *wrapper.SocEstimator
+	socTimer     *SoCTimer
 
 	// cached state
 	status        api.ChargeStatus // Charger status
@@ -141,6 +142,9 @@ func NewLoadPointFromConfig(log *util.Logger, cp configProvider, other map[strin
 	}
 	charger := cp.Charger(lp.ChargerRef)
 	lp.configureChargerType(charger)
+
+	// allow target charge handler to access loadpoint
+	lp.socTimer = &SoCTimer{LoadPoint: lp}
 
 	if lp.Enable.Threshold > lp.Disable.Threshold {
 		log.WARN.Printf("PV mode enable threshold (%.0fW) is larger than disable threshold (%.0fW)", lp.Enable.Threshold, lp.Disable.Threshold)
@@ -544,6 +548,15 @@ func (lp *LoadPoint) detectPhases() {
 	}
 }
 
+// effectiveCurrent returns the currently effective charging current
+// it does not take measured currents into account
+func (lp *LoadPoint) effectiveCurrent() int64 {
+	if lp.status != api.StatusC {
+		return 0
+	}
+	return lp.handler.TargetCurrent()
+}
+
 // pvDisableTimer puts the pv enable/disable timer into elapsed state
 func (lp *LoadPoint) pvDisableTimer() {
 	lp.pvTimer = time.Now().Add(-lp.Disable.Delay)
@@ -552,10 +565,7 @@ func (lp *LoadPoint) pvDisableTimer() {
 // pvMaxCurrent calculates the maximum target current for PV mode
 func (lp *LoadPoint) pvMaxCurrent(mode api.ChargeMode, sitePower float64) int64 {
 	// calculate target charge current from delta power and actual current
-	effectiveCurrent := lp.handler.TargetCurrent()
-	if lp.status != api.StatusC {
-		effectiveCurrent = 0
-	}
+	effectiveCurrent := lp.effectiveCurrent()
 	deltaCurrent := powerToCurrent(-sitePower, lp.Phases)
 	targetCurrent := clamp(effectiveCurrent+deltaCurrent, 0, lp.MaxCurrent)
 
@@ -766,11 +776,21 @@ func (lp *LoadPoint) Update(sitePower float64) {
 			targetCurrent = lp.MinCurrent
 		}
 		err = lp.handler.Ramp(targetCurrent, true)
+		lp.socTimer.Reset() // once SoC is reached, the target charge request is removed
 
-	// OCPP
+	// OCPP has priority over target charging
 	case lp.remoteControlled(RemoteHardDisable):
 		remoteDisabled = RemoteHardDisable
-		fallthrough
+		err = lp.handler.Ramp(0, true)
+
+	// target charging
+	case lp.socTimer.StartRequired():
+		var pvCurrent int64
+		// check if pv mode offers higher current
+		if mode == api.ModeMinPV || mode == api.ModePV {
+			pvCurrent = lp.pvMaxCurrent(mode, sitePower)
+		}
+		err = lp.socTimer.Handle(pvCurrent)
 
 	case mode == api.ModeOff:
 		err = lp.handler.Ramp(0, true)

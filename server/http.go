@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -219,6 +220,7 @@ func MinSoCHandler(loadpoint core.LoadPointSettingsAPI) http.HandlerFunc {
 		}
 
 		if !ok || err != nil {
+			log.DEBUG.Printf("parse soc: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -256,6 +258,53 @@ func RemoteDemandHandler(loadpoint core.LoadPointSettingsAPI) http.HandlerFunc {
 			Source: source,
 			Demand: demand,
 		}
+
+		jsonResponse(w, r, res)
+	}
+}
+
+func timezone() *time.Location {
+	tz := os.Getenv("TZ")
+	if tz == "" {
+		tz = "Local"
+	}
+
+	loc, _ := time.LoadLocation(tz)
+	return loc
+}
+
+// TargetChargeHandler updates target soc
+func TargetChargeHandler(loadpoint core.LoadPointSettingsAPI) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+
+		socS, ok := vars["soc"]
+		socV, err := strconv.ParseInt(socS, 10, 32)
+
+		if !ok || err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		timeS, ok := vars["time"]
+		timeV, err := time.ParseInLocation("2006-01-02T15:04:05", timeS, timezone())
+
+		if !ok || err != nil || timeV.Before(time.Now()) {
+			log.DEBUG.Printf("parse time: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		loadpoint.SetTargetCharge(timeV, int(socV))
+
+		res := struct {
+			SoC  int64     `json:"soc"`
+			Time time.Time `json:"time"`
+		}{
+			SoC:  socV,
+			Time: timeV,
+		}
+
 		jsonResponse(w, r, res)
 	}
 }
@@ -281,16 +330,17 @@ type HTTPd struct {
 // NewHTTPd creates HTTP server with configured routes for loadpoint
 func NewHTTPd(url string, site core.SiteAPI, hub *SocketHub, cache *util.Cache) *HTTPd {
 	var routes = map[string]route{
-		"health":       {[]string{"GET"}, "/health", HealthHandler(site)},
-		"state":        {[]string{"GET"}, "/state", StateHandler(cache)},
-		"templates":    {[]string{"GET"}, "/config/templates/{class:[a-z]+}", TemplatesHandler()},
-		"getmode":      {[]string{"GET"}, "/mode", CurrentChargeModeHandler(site)},
-		"setmode":      {[]string{"POST", "OPTIONS"}, "/mode/{mode:[a-z]+}", ChargeModeHandler(site)},
-		"gettargetsoc": {[]string{"GET"}, "/targetsoc", CurrentTargetSoCHandler(site)},
-		"settargetsoc": {[]string{"POST", "OPTIONS"}, "/targetsoc/{soc:[0-9]+}", TargetSoCHandler(site)},
-		"getminsoc":    {[]string{"GET"}, "/minsoc", CurrentMinSoCHandler(site)},
-		"setminsoc":    {[]string{"POST", "OPTIONS"}, "/minsoc/{soc:[0-9]+}", MinSoCHandler(site)},
-		"remotedemand": {[]string{"POST", "OPTIONS"}, "/remotedemand/{demand:[a-z]+}/{source}", RemoteDemandHandler(site)},
+		"health":          {[]string{"GET"}, "/health", HealthHandler(site)},
+		"state":           {[]string{"GET"}, "/state", StateHandler(cache)},
+		"templates":       {[]string{"GET"}, "/config/templates/{class:[a-z]+}", TemplatesHandler()},
+		"getmode":         {[]string{"GET"}, "/mode", CurrentChargeModeHandler(site)},
+		"setmode":         {[]string{"POST", "OPTIONS"}, "/mode/{mode:[a-z]+}", ChargeModeHandler(site)},
+		"gettargetsoc":    {[]string{"GET"}, "/targetsoc", CurrentTargetSoCHandler(site)},
+		"settargetsoc":    {[]string{"POST", "OPTIONS"}, "/targetsoc/{soc:[0-9]+}", TargetSoCHandler(site)},
+		"getminsoc":       {[]string{"GET"}, "/minsoc", CurrentMinSoCHandler(site)},
+		"setminsoc":       {[]string{"POST", "OPTIONS"}, "/minsoc/{soc:[0-9]+}", MinSoCHandler(site)},
+		"remotedemand":    {[]string{"POST", "OPTIONS"}, "/remotedemand/{demand:[a-z]+}/{source}", RemoteDemandHandler(site)},
+		"settargetcharge": {[]string{"POST", "OPTIONS"}, "/targetcharge/{soc:[0-9]+}/{time:[0-9TZ:-]+}", TargetChargeHandler(site)},
 	}
 
 	router := mux.NewRouter().StrictSlash(true)
@@ -334,6 +384,7 @@ func NewHTTPd(url string, site core.SiteAPI, hub *SocketHub, cache *util.Cache) 
 		applyRouteHandler(subAPI, routes["getminsoc"], CurrentMinSoCHandler(lp))
 		applyRouteHandler(subAPI, routes["setminsoc"], MinSoCHandler(lp))
 		applyRouteHandler(subAPI, routes["remotedemand"], RemoteDemandHandler(lp))
+		applyRouteHandler(subAPI, routes["settargetcharge"], TargetChargeHandler(lp))
 	}
 
 	srv := &HTTPd{

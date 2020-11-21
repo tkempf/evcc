@@ -238,7 +238,7 @@ loadpoints:
           <mode class="w-100" v-bind:mode="state.mode" :pv="pv" v-on:updated="targetMode"></mode>
         </div>
         <div class="col-12 mt-3" v-if="hasTargetSoC">
-          <soc class="w-100" v-bind:soc="state.targetSoC" :levels="state.socLevels" v-on:updated="targetSoC"></soc>
+          <soc class="w-100" v-bind:state="state" v-on:updated="targetSoC"></soc>
         </div>
       </div>
     </div>
@@ -249,7 +249,7 @@ loadpoints:
       <mode v-bind:mode="state.mode" :pv="pv" :caption="true" v-on:updated="targetMode"></mode>
     </div>
     <div class="col-md-6 mt-3" v-if="hasTargetSoC">
-      <soc v-bind:soc="state.targetSoC" :levels="state.socLevels" :caption="true" v-on:updated="targetSoC"></soc>
+      <soc v-bind:state="state" :caption="true" v-on:updated="targetSoC"></soc>
     </div>
   </div>
 
@@ -258,7 +258,7 @@ loadpoints:
       <mode class="w-100" v-bind:mode="state.mode" :pv="pv" v-on:updated="targetMode"></mode>
     </div>
     <div class="col-12 mt-3" v-if="hasTargetSoC">
-      <soc class="w-100" v-bind:soc="state.targetSoC" :levels="state.socLevels" v-on:updated="targetSoC"></soc>
+      <soc class="w-100" v-bind:state="state" v-on:updated="targetSoC"></soc>
     </div>
   </div>
 
@@ -372,16 +372,24 @@ loadpoints:
   <label class="btn btn-outline-primary disabled caption font-weight-bold" v-if="caption">
     Ladeziel
   </label>
-  <label class="btn btn-outline-primary" v-for="(level,id) in levelsOrDefault" v-bind:level="level" :id="id"
-    :class="{active:soc==level,first:!caption&&id==0}">
+  <label class="btn btn-outline-primary" v-for="(level,id) in levelsOrDefault" v-bind:level="level" :soc="state.targetSoC" :id="id"
+    :class="{active:state.targetSoC==level,first:!caption&&id==0}">
     <input type="radio" v-bind:value="level" v-on:click="targetSoC(level)">{{level}}%
+  </label>
+  <label class="btn btn-outline-primary">
+    <input type="checkbox" class="disabled" v-on:click="alert('not implemented- use api')">
+    <i class="fa-clock" v-bind:class="{fas:state.socTimerActive,far:!state.socTimerActive}"></i>
   </label>
 </div>
 </script>
 
 <script type="text/x-template" id="vehicle-template">
 <div>
-  <div class="mb-2">{{state.socTitle||"Fahrzeug"}}</div>
+  <div class="mb-2">{{state.socTitle||"Fahrzeug"}}
+    <!-- <i class="text-primary fas fa-clock ml-1" v-if="state.socTimerActive"></i>
+    <i class="text-primary far fa-clock ml-1" v-else-if="state.socTimerSet"></i>
+    <i class="text-secondary far fa-clock ml-1" v-else-if="state.soc"></i> -->
+  </div>
   <div class="progress" style="height: 24px; font-size:100%; margin-top:16px">
     <div class="progress-bar" role="progressbar" v-bind:class="{
         'progress-bar-striped': state.charging,

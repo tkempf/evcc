@@ -1,6 +1,10 @@
 package core
 
-import "github.com/andig/evcc/api"
+import (
+	"time"
+
+	"github.com/andig/evcc/api"
+)
 
 // SiteAPI is the external site API
 type SiteAPI interface {
@@ -61,6 +65,14 @@ func (site *Site) SetMinSoC(soc int) error {
 		}
 	}
 	return nil
+}
+
+// SetTargetCharge sets loadpoint charge targetSoC
+func (site *Site) SetTargetCharge(finishAt time.Time, targetSoC int) {
+	site.log.INFO.Printf("set target charge: %d @ %v", targetSoC, finishAt)
+	for _, lp := range site.loadpoints {
+		lp.SetTargetCharge(finishAt, targetSoC)
+	}
 }
 
 // RemoteControl sets remote status demand

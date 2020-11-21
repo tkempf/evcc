@@ -412,13 +412,13 @@ Vue.component("mode", {
 
 Vue.component("soc", {
   template: "#soc-template",
-  props: ["soc", "caption", "levels"],
+  props: ["state", "caption"],
   computed: {
     levelsOrDefault: function() {
-      if (this.levels == null || this.levels.length == 0) {
+      if (this.state == null || this.state.socLevels == null || this.state.socLevels.length == 0) {
         return []; // disabled, or use 30, 50, 80, 100
       }
-      return this.levels;
+      return this.state.socLevels;
     }
   },
   methods: {

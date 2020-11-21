@@ -1,6 +1,8 @@
 package core
 
 import (
+	"time"
+
 	"github.com/andig/evcc/api"
 	"github.com/andig/evcc/core/wrapper"
 )
@@ -21,6 +23,7 @@ type LoadPointSettingsAPI interface {
 	SetTargetSoC(int) error
 	GetMinSoC() int
 	SetMinSoC(int) error
+	SetTargetCharge(time.Time, int)
 	RemoteControl(string, RemoteDemand)
 }
 
@@ -108,6 +111,21 @@ func (lp *LoadPoint) SetMinSoC(soc int) error {
 	}
 
 	return nil
+}
+
+// SetTargetCharge sets loadpoint charge targetSoC
+func (lp *LoadPoint) SetTargetCharge(finishAt time.Time, targetSoC int) {
+	lp.Lock()
+	defer lp.Unlock()
+
+	lp.log.INFO.Printf("set target charge: %d @ %v", targetSoC, finishAt)
+
+	// apply immediately
+	// TODO check reset of targetSoC
+	lp.publish("targetTime", finishAt)
+	lp.publish("targetSoC", targetSoC)
+
+	lp.requestUpdate()
 }
 
 // RemoteControl sets remote status demand

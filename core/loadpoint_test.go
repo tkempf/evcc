@@ -85,7 +85,7 @@ func TestUpdate(t *testing.T) {
 	tc := []struct {
 		status api.ChargeStatus
 		mode   api.ChargeMode
-		expect func(h *mock.MockHandler)
+		expect func(h *mock.MockLoadPoint)
 	}{
 		{api.StatusA, api.ModeOff, func(h *mock.MockHandler) {
 			h.EXPECT().Ramp(int64(0))
@@ -152,12 +152,9 @@ func TestUpdate(t *testing.T) {
 			chargeMeter: &Null{}, // silence nil panics
 			chargeRater: &Null{}, // silence nil panics
 			chargeTimer: &Null{}, // silence nil panics
-			HandlerConfig: HandlerConfig{
-				MinCurrent: lpMinCurrent,
-				MaxCurrent: lpMaxCurrent,
-			},
-			handler: handler,
-			status:  tc.status, // no status change
+			MinCurrent:  lpMinCurrent,
+			MaxCurrent:  lpMaxCurrent,
+			status:      tc.status, // no status change
 		}
 
 		handler.EXPECT().Prepare().Return()
@@ -297,14 +294,11 @@ func TestPVHysteresisForStatusC(t *testing.T) {
 
 		Voltage = 100
 		lp := &LoadPoint{
-			log:   util.NewLogger("foo"),
-			clock: clck,
-			HandlerConfig: HandlerConfig{
-				MinCurrent: lpMinCurrent,
-				MaxCurrent: lpMaxCurrent,
-			},
-			handler: handler,
-			Phases:  10,
+			log:        util.NewLogger("foo"),
+			clock:      clck,
+			MinCurrent: lpMinCurrent,
+			MaxCurrent: lpMaxCurrent,
+			Phases:     10,
 			Enable: ThresholdConfig{
 				Threshold: tc.enable,
 				Delay:     dt,
@@ -345,14 +339,11 @@ func TestPVHysteresisForStatusOtherThanC(t *testing.T) {
 
 	Voltage = 100
 	lp := &LoadPoint{
-		log:   util.NewLogger("foo"),
-		clock: clck,
-		HandlerConfig: HandlerConfig{
-			MinCurrent: lpMinCurrent,
-			MaxCurrent: lpMaxCurrent,
-		},
-		handler: handler,
-		Phases:  10,
+		log:        util.NewLogger("foo"),
+		clock:      clck,
+		MinCurrent: lpMinCurrent,
+		MaxCurrent: lpMaxCurrent,
+		Phases:     10,
 	}
 
 	// not connected, test PV mode logic  short-circuited
@@ -383,17 +374,14 @@ func TestDisableAndEnableAtTargetSoC(t *testing.T) {
 	socEstimator := wrapper.NewSocEstimator(util.NewLogger("foo"), vehicle, false)
 
 	lp := &LoadPoint{
-		log:         util.NewLogger("foo"),
-		bus:         evbus.New(),
-		clock:       clock,
-		chargeMeter: &Null{}, // silence nil panics
-		chargeRater: &Null{}, // silence nil panics
-		chargeTimer: &Null{}, // silence nil panics
-		HandlerConfig: HandlerConfig{
-			MinCurrent: lpMinCurrent,
-			MaxCurrent: lpMaxCurrent,
-		},
-		handler:      handler,
+		log:          util.NewLogger("foo"),
+		bus:          evbus.New(),
+		clock:        clock,
+		chargeMeter:  &Null{}, // silence nil panics
+		chargeRater:  &Null{}, // silence nil panics
+		chargeTimer:  &Null{}, // silence nil panics
+		MinCurrent:   lpMinCurrent,
+		MaxCurrent:   lpMaxCurrent,
 		vehicle:      vehicle,      // needed for targetSoC check
 		socEstimator: socEstimator, // instead of vehicle: vehicle,
 		status:       api.StatusC,
@@ -457,12 +445,9 @@ func TestSetModeAndSocAtDisconnect(t *testing.T) {
 		chargeMeter: &Null{}, // silence nil panics
 		chargeRater: &Null{}, // silence nil panics
 		chargeTimer: &Null{}, // silence nil panics
-		HandlerConfig: HandlerConfig{
-			MinCurrent: lpMinCurrent,
-			MaxCurrent: lpMaxCurrent,
-		},
-		handler: handler,
-		status:  api.StatusC,
+		MinCurrent:  lpMinCurrent,
+		MaxCurrent:  lpMaxCurrent,
+		status:      api.StatusC,
 		OnDisconnect: struct {
 			Mode      api.ChargeMode `mapstructure:"mode"`      // Charge mode to apply when car disconnected
 			TargetSoC int            `mapstructure:"targetSoC"` // Target SoC to apply when car disconnected
@@ -529,12 +514,9 @@ func TestChargedEnergyAtDisconnect(t *testing.T) {
 		chargeMeter: &Null{}, // silence nil panics
 		chargeRater: rater,
 		chargeTimer: &Null{}, // silence nil panics
-		HandlerConfig: HandlerConfig{
-			MinCurrent: lpMinCurrent,
-			MaxCurrent: lpMaxCurrent,
-		},
-		handler: handler,
-		status:  api.StatusC,
+		MinCurrent:  lpMinCurrent,
+		MaxCurrent:  lpMaxCurrent,
+		status:      api.StatusC,
 	}
 
 	lp.Mode = api.ModeNow

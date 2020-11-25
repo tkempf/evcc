@@ -12,7 +12,7 @@ import (
 	"github.com/avast/retry-go"
 )
 
-//go:generate mockgen -package mock -destination ../mock/mock_loadpoint.go github.com/andig/evcc/core Updater
+//go:generate mockgen -package mock -destination ../mock/mock_updater.go github.com/andig/evcc/core Updater
 
 // Updater abstracts the LoadPoint implementation for testing
 type Updater interface {
@@ -150,11 +150,10 @@ func (site *Site) DumpConfig() {
 
 		lp.log.INFO.Printf("  mode:      %s", lp.GetMode())
 
-		charger := lp.handler.(*ChargerHandler).charger
-		_, power := charger.(api.Meter)
-		_, energy := charger.(api.MeterEnergy)
-		_, currents := charger.(api.MeterCurrent)
-		_, timer := charger.(api.ChargeTimer)
+		_, power := lp.charger.(api.Meter)
+		_, energy := lp.charger.(api.MeterEnergy)
+		_, currents := lp.charger.(api.MeterCurrent)
+		_, timer := lp.charger.(api.ChargeTimer)
 
 		lp.log.INFO.Printf("  charger:   power %s energy %s currents %s timer %s",
 			presence[power],

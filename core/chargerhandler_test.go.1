@@ -19,25 +19,24 @@ const (
 	dt                  = time.Hour
 )
 
-func newChargerHandler(clock clock.Clock, mc api.Charger) *ChargerHandler {
-	h := &ChargerHandler{
-		log:     util.NewLogger("foo"),
-		clock:   clock,
-		bus:     evbus.New(),
-		charger: mc,
-		HandlerConfig: HandlerConfig{
-			MinCurrent:    minA,
-			MaxCurrent:    maxA,
-			GuardDuration: guardDuration,
-		},
+func newChargerHandler(t *testing.T, clock clock.Clock, mc api.Charger) *LoadPoint {
+	lp := &LoadPoint{
+		log:           util.NewLogger("foo"),
+		clock:         clock,
+		bus:           evbus.New(),
+		charger:       mc,
+		MinCurrent:    minA,
+		MaxCurrent:    maxA,
+		GuardDuration: guardDuration,
 	}
 
 	// prepare charger and set guardUpdated
 	mc.(*mock.MockCharger).EXPECT().Enabled().Return(true, nil)
 	mc.(*mock.MockCharger).EXPECT().MaxCurrent(int64(6)).Return(nil)
-	h.Prepare()
 
-	return h
+	attachListeners(t, lp)
+
+	return lp
 }
 
 // test here to ensure loadpoint defaults are valid
@@ -101,7 +100,7 @@ func TestEnable(t *testing.T) {
 		t.Log(tc)
 
 		clock := clock.NewMock()
-		r := newChargerHandler(clock, mc)
+		r := newChargerHandler(t, clock, mc)
 		r.enabled = tc.enabled
 		r.targetCurrent = tc.targetCurrent
 
@@ -148,7 +147,7 @@ func TestSetCurrent(t *testing.T) {
 		t.Log(tc)
 
 		clock := clock.NewMock()
-		r := newChargerHandler(clock, mc)
+		r := newChargerHandler(t, clock, mc)
 		r.targetCurrent = tc.targetCurrentI
 
 		tc.expect(mc)
@@ -218,7 +217,7 @@ func TestRampOn(t *testing.T) {
 		t.Log(tc)
 
 		clock := clock.NewMock()
-		r := newChargerHandler(clock, mc)
+		r := newChargerHandler(t, clock, mc)
 		r.enabled = tc.enabledI
 		r.targetCurrent = tc.targetCurrentI
 
@@ -278,7 +277,7 @@ func TestRampOff(t *testing.T) {
 		t.Log(tc)
 
 		clock := clock.NewMock()
-		r := newChargerHandler(clock, mc)
+		r := newChargerHandler(t, clock, mc)
 		r.enabled = tc.enabledI
 		r.targetCurrent = tc.targetCurrentI
 
@@ -331,7 +330,7 @@ func TestRampUpDown(t *testing.T) {
 		t.Log(tc)
 
 		clock := clock.NewMock()
-		h := newChargerHandler(clock, mc)
+		h := newChargerHandler(t, clock, mc)
 		h.enabled = true
 		h.targetCurrent = tc.targetCurrentI
 
